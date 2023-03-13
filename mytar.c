@@ -16,7 +16,8 @@
 #include "util.h"
 
 //Define functions
-void create_archive(char *tarfile, char **paths, int num_paths, int verbose, int strict);
+void create_archive(char *tarfile, char **paths, int num_paths, int verbose, 
+        int strict);
 void list_contents(char *tarfile, int verbose);
 void extract_archive(char *tarfile, int verbose, int strict);
 
@@ -40,7 +41,9 @@ if (argc < 2) {
 
 //Parse command-line arguments
 while ((argv[1][k]) != '\0') {
-    //printf("Switch with opt: %c\n", argv[1][k]); // TODO: remove
+#ifdef TEST
+    printf("Switch with opt: %c\n", argv[1][k]); // TODO: remove
+#endif
     switch (argv[1][k]) {
         case 'c':
             cflag = 1;
@@ -74,7 +77,9 @@ while ((argv[1][k]) != '\0') {
 //Check for required options
 if (!cflag && !tflag && !xflag) {
     //Print usage message
+#ifdef TEST
     printf("C: %d, T: %d, X: %d flags", cflag, tflag, xflag); //TODO: remove
+#endif
     fprintf(stderr, "Usage1: mytar [ctxvS]f tarfile [ path [ ... ] ]\n");
     exit(EXIT_FAILURE);
 }
@@ -107,6 +112,31 @@ if (cflag) {
 return 0;
 }
 
+int insert_special_int(char *where, size_t size, int32_t val) {
+    /* For interoperability with GNU tar. GNU seems to
+    * set the high–order bit of the first byte, then
+    * treat the rest of the field as a binary integer
+    * in network byte order.
+    * Insert the given integer into the given field
+    * using this technique. Returns 0 on success, nonzero
+    * otherwise
+    */
+    int err=0;
+    if ( val < 0 || ( size < sizeof(val)) ) {
+        /* if it’s negative, bit 31 is set and we can’t use the flag
+        * if len is too small, we can’t write it. Either way, we’re
+        * done.
+        */
+        err++;
+    } else {
+        /* game on....*/
+        memset(where, 0, size); /* Clear out the buffer */
+        *(int32_t *)(where + size - sizeof(val)) = htonl(val); /* place int */
+        *where |= 0x80; /* set that high–order bit */
+    }
+    return err;
+}
+
 int openArchive(char *tarfile){
     int tar_fd = open(tarfile, O_WRONLY | O_CREAT | O_TRUNC, 0666);
     if (tar_fd == -1) {
@@ -119,16 +149,25 @@ int openArchive(char *tarfile){
 
 void splitName(char *filepath, hPtr header, struct stat st){
     char filename[NAME_MAX + 1];
+    strcpy(filename, filepath);
     // Add trailing '/' if file is a directory
     if (S_ISDIR(st.st_mode)) {
         filename[strlen(filename)] = '/';
     }
+#ifdef TEST
+    printf("Adding %s to name/prefix feilds of header\n", filename);
+#endif
     
     if (strlen(filename) <= MT_NAMELEN){
         /* copy filename to header name feild
          * if filename is shorter than MT_NAMELEN
          * it fills rest with '\0' */
         strncpy(header->name, filename, MT_NAMELEN);
+        strncpy(header->prefix, "", MT_PFXLEN);
+#ifdef TEST
+        printf("Name field got: %s\n", header->name);
+        printf("Prefix feild got: %s\n", header->prefix);
+#endif
     } else {
         char name[MT_NAMELEN];
         int i;
@@ -137,19 +176,29 @@ void splitName(char *filepath, hPtr header, struct stat st){
             name[i - MT_PFXLEN] = filename[i];
         }
         strncpy(header->name, name, MT_NAMELEN);
+#ifdef TEST
+        printf("Name field got: %s\n", header->name);
+        printf("Prefix feild got: %s\n", header->prefix);
+#endif
     }
 }
 
 void setType(char *filename, struct stat st, hPtr header){
     if (S_ISDIR(st.st_mode)){
-        header->typeflag[0] = DIRECTORY;
+        header->typeflag = DIRECTORY;
         // Directories don't have a size?
         strcpy(header->size, "00000000000");
+        /* Directories don't have links */
+        char zero_link[MT_LINKLEN] = { 0 };
+        strcpy(header->linkname, zero_link);
     } else if (S_ISREG(st.st_mode)){
-        header->typeflag[0] = REGULAR_FILE;
+        header->typeflag = REGULAR_FILE;
         sprintf(header->size, "%011lo", st.st_size);
+        /* regular files don't have links */
+        char zero_link[MT_LINKLEN] = { 0 };
+        strcpy(header->linkname, zero_link);
     } else if (S_ISLNK(st.st_mode)){
-        header->typeflag[0] = SYM_LINK;
+        header->typeflag = SYM_LINK;
         // Symbolic links don't have a size?
         strcpy(header->size, "00000000000");
         readlink(filename, header->linkname, MT_LINKLEN);
@@ -200,26 +249,54 @@ hPtr create_header(char *filename, struct stat st) {
     header = memset(header, 0, HEADER_SIZE);
     
     // Fill header with filename
-    splitName(filename, header);
+    splitName(filename, header, st);
 
     // Add file data to header
     sprintf(header->mode, "%07o", st.st_mode & 0777);
+#ifdef TEST
+    printf("%s's mode is %07o\n", filename, st.st_mode);
+    printf("Mode field got: %s\n", header->mode);
+#endif
 
-    sprintf(header->uid, "%07o", st.st_uid);
+    //sprintf(header->uid, "%07o", st.st_uid);
+    insert_special_int(header->uid, MT_UIDLEN, st.st_uid);
+#ifdef TEST
+    printf("%s's mode is %07o\n", filename, st.st_uid);
+    printf("UID field got: %s\n", header->uid);
+#endif
     sprintf(header->gid, "%07o", st.st_gid);
     sprintf(header->mtime, "%011lo", st.st_mtime);
     strcpy(header->magic, MAGIC);
     strcpy(header->version, VERSION);
+#ifdef TEST
+    printf("GID field got: %s\n", header->gid);
+    printf("MTime field got: %s\n", header->mtime);
+#endif
 
-    // Set Type and size accordingly
+    // Set Type and size + link accordingly
     setType(filename, st, header);
+#ifdef TEST
+    printf("TypeFlag field got: %c\n", header->typeflag);
+    printf("Linkname field got: %s\n", header->linkname);
+    printf("Magic field got: %s\n", header->magic);
+    printf("Version field got: %s\n", header->version);
+#endif
 
     // Set uname and gname
     setIDName(st, header);
+#ifdef TEST
+    printf("UName field got: %s\n", header->uname);
+    printf("GName field got: %s\n", header->gname);
+#endif
     
     // Calculate and add header checksum
     checksum = getChecksum((uint8_t *) &header);
     sprintf(header->chksum, "%07o", checksum);
+#ifdef TEST
+    printf("Checksum found as %0o\n", checksum);
+    printf("Checksum field got: %s\n", header->chksum);
+#endif
+    return header;
 }
 
 void add_file(int tar_fd, char *filepath, int verbose) {
@@ -243,7 +320,7 @@ void add_file(int tar_fd, char *filepath, int verbose) {
     write(tar_fd, header, HEADER_SIZE);
 
     // If file has non-zero size
-    if (strcmp(header->size, "00000000000") {
+    if (strcmp(header->size, "00000000000")) {
         // Write file contents to archive
         char buffer[BLOCK_SIZE];
         int bytes_read, bytes_written;
@@ -252,7 +329,7 @@ void add_file(int tar_fd, char *filepath, int verbose) {
         }
         if (bytes_written < BLOCK_SIZE){ // fill remainder of block
             char zero_block[BLOCK_SIZE] = { 0 };
-            write(tar_fd, zero_block, (BLOCK_SIZE - bytes_wrtten));
+            write(tar_fd, zero_block, (BLOCK_SIZE - bytes_written));
         }
     }
 
@@ -291,7 +368,8 @@ void add_dir(int tar_fd, char *path, int verbose) {
         if (entry->d_type == DT_DIR) {
             add_dir(tar_fd, full_path, verbose);
         } else if (entry->d_type == DT_LNK){
-            add_lnk();
+            // TODO :add_lnk();
+            add_file(tar_fd, full_path, verbose);
         } else { // else just a file
             add_file(tar_fd, full_path, verbose);
         }
@@ -302,34 +380,52 @@ void add_dir(int tar_fd, char *path, int verbose) {
 }
 
 void parseFile(char *path, struct stat st, int tar_fd, int verbose, int strict){
-    hPtr header;
+#ifdef TEST
+    printf("Parse: %s\n", path);
+#endif
     // Check if path is a directory
     if (S_ISDIR(st.st_mode)) {
         // Add directory to archive
         add_dir(tar_fd, path, verbose);
     } else if(S_ISREG(st.st_mode)) {
+#ifdef TEST
+        printf("%s is a regular file\n", path);
+#endif
         // Add file to archive
         add_file(tar_fd, path, verbose);
-    } else {
+    } else if(S_ISLNK(st.st_mode)) {
         // Add link to archive 
         // TODO: add_lnk()
+        add_file(tar_fd, path, verbose);
+    } else {
+        // Print error message and return if file type not supported
+        fprintf(stderr, "Unsupported file type: %s\n", path);
+        return;
     }
 }
 
 // Define function to create a tar archive
-void create_archive(char *tarfile, char **paths, int num_paths, int verbose, int strict) {
+void create_archive(char *tarfile, char **paths, int num_paths, int verbose, 
+        int strict) {
     // Open archive file for writing
     int tar_fd = openArchive(tarfile);
 
     // Process each path
     for (int i = 0; i < num_paths; i++) {
         char *path = paths[i];
+#ifdef TEST
+        printf("Processing path: %s\n", path);
+#endif
         if (strlen(path) >= NAME_MAX){
             printf("Error: The path %s is too long.\n", path);
             exit(EXIT_FAILURE);
         }
         struct stat st;
-        if(lstat(path, &st) > 0){ /* If stat is successful */
+        if(lstat(path, &st) < 0){ /* If stat is successful */
+#ifdef TEST
+            printf("lstat() failed on: %s\n", path);
+#endif
+        } else {
             parseFile(path, st, tar_fd, verbose, strict);
         }
     }
