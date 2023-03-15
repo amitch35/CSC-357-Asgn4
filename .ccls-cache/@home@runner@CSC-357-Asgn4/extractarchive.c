@@ -45,7 +45,7 @@ void extract(char *path, hPtr header, int tarFD, int v) {
   if (v) {
     printf("%s\n", path);
   }
-  if (header->typeflag == REGULAR_FILE) {
+  if (header->typeflag == REGULAR_FILE || header->typeflag == REGULAR_FILE_ALT) {
     /* Extract file */
     // Open the file first
     // extractFile(path, header);
@@ -57,7 +57,7 @@ void extract(char *path, hPtr header, int tarFD, int v) {
 }
 
 /* Open tarfile */
-void openTar(char *tarfile, int argc, char *argv[], int v) {
+void openTar(char *tarfile,  char **paths, int num_paths, int v) {
   int tarFD, i, num, result;
   hPtr header = {0};
   char *path;
@@ -70,32 +70,26 @@ void openTar(char *tarfile, int argc, char *argv[], int v) {
   /* Read all files in the archive */
   while ((num = read(tarFD, header, BLOCK_SIZE)) > 0) {
     /* Reached the end */
-    if (!header->name[0]) {
+    if (!header->name[0]) { /* if first char in header is '\0' */
       break;
     }
     /* Get full path name */
     path = getPath(header->prefix, header->name);
-    /* If no files specified */
-    if (argc < 4) {
-      /* Extract all files */
-      extract(path, header, tarFD, v);
 
-    } else {
+    /* If specific paths are given */
+    if (num_paths > 0) {
       /* Look for the named files */
-      for (i = 3; i < argc; i++) {
+      for (i = 0; i < num_paths; i++) {
         /* Extract each named file */
       }
+    } else {
+      /* Extract all files */
+      extract(path, header, tarFD, v);
     }
   }
 }
 
-void extractArchive(char *tarfile, int argc, char *argv[], int v) {
-  int i;
-  if (argc < 2) {
-    perror("Not enough arguments\n");
-    exit(1);
-  } else {
+void extractArchive(char *tarfile,  char **paths, int num_paths, int v) {
     /* Open tarfile */
-    openTar(tarfile, argc, argv, v);
-  }
+    openTar(tarfile,  paths, num_paths, v);
 }

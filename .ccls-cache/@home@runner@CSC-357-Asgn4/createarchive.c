@@ -36,13 +36,19 @@ int openArchive(char *tarfile) {
 }
 
 void splitName(char *filepath, hPtr header, struct stat st) {
-  char filename[NAME_MAX + 1];
+  char filename[NAME_MAX] = {0};
   strcpy(filename, filepath);
   // Add trailing '/' if file is a directory
   if (S_ISDIR(st.st_mode)) {
-    filename[strlen(filename)] = '/';
-  }
 #ifdef TEST
+  fprintf(stdout,"%s is a dir so add slash to end of pathname\n", filepath);
+#endif
+    filename[strlen(filename)] = '/';
+  } 
+#ifdef TEST
+  else { // TODO remove else and return ifdef above
+  fprintf(stdout,"%s is not dir\n", filepath);
+  }
   printf("Adding %s to name/prefix feilds of header\n", filename);
 #endif
 
@@ -102,7 +108,7 @@ void setType(char *filename, struct stat st, hPtr header) {
 
 void setIDName(struct stat st, hPtr header) {
 #ifdef TEST
-    printf("Setting UID and GID");
+    printf("Setting UID and GID\n");
 #endif
   struct passwd *pentry;
   struct group *pgroup;
@@ -141,8 +147,7 @@ hPtr create_header(char *filename, struct stat st, int strict) {
   header = malloc(HEADER_SIZE);
   header = memset(header, 0, HEADER_SIZE);
 #ifdef TEST
-  printf("Made new header struct - sizeof = %d\n", (int) sizeof(hEntry));
-  printf("Header size should be: %d\n", HEADER_SIZE);
+  printf("Made new header struct with size %d\n", HEADER_SIZE);
 #endif
 
   // Fill header with filename
@@ -158,7 +163,7 @@ hPtr create_header(char *filename, struct stat st, int strict) {
   // sprintf(header->uid, "%07o", st.st_uid);
   insert_special_int(header->uid, MT_UIDLEN, st.st_uid);
 #ifdef TEST
-  printf("%s's mode is %07o\n", filename, st.st_uid);
+  printf("%s's uid is %07o\n", filename, st.st_uid);
   printf("UID field got: %s\n", header->uid);
 #endif
   sprintf(header->gid, "%07o", st.st_gid);
@@ -179,10 +184,10 @@ hPtr create_header(char *filename, struct stat st, int strict) {
   setType(filename, st, header);
 #ifdef TEST
   printf("TypeFlag field got: %c\n", header->typeflag);
+  printf("Size field got: %s\n", header->size);
   printf("Linkname field got: %s\n", header->linkname);
   printf("Magic field got: %s\n", header->magic);
   printf("Version field got: %s\n", header->version);
-  printf(">>>this line is run");
 #endif
 
   // Set uname and gname
@@ -246,6 +251,9 @@ void add_file(int tar_fd, char *filepath, int verbose, int strict) {
 }
 
 void add_dir(int tar_fd, char *path, int verbose, int strict) {
+#ifdef TEST
+  printf("Adding directory -> start with dir itself: %s\n", path);
+#endif
   // Add the directory itself
   add_file(tar_fd, path, verbose, strict);
 
@@ -265,6 +273,9 @@ void add_dir(int tar_fd, char *path, int verbose, int strict) {
       printf("Error: The path %s is too long.\n", full_path);
       exit(EXIT_FAILURE);
     }
+#ifdef TEST
+    printf("Add subdir or file: %s in %s\n", full_path, path);
+#endif
 
     // if directory
     if (entry->d_type == DT_DIR) {

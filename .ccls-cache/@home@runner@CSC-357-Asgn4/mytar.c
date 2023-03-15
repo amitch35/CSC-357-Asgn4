@@ -5,7 +5,7 @@
 void create_archive(char *tarfile, char **paths, int num_paths, int verbose,
                     int strict);
 void list_contents(char *tarfile, int verbose);
-void extract_archive(char *tarfile, int verbose, int strict);
+void extractArchive(char *tarfile,  char **paths, int num_paths, int v);
 
 // Main function
 int main(int argc, char **argv) {
@@ -99,7 +99,7 @@ int main(int argc, char **argv) {
 #ifdef TEST
     printf("CALL TO extract_archive\n");
 #endif
-    // extractArchive(tarfile, argc, argv, verbose);
+    extractArchive(tarfile, paths, num_paths, verbose);
   }
 
   return 0;

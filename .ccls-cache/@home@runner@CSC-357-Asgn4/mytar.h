@@ -14,6 +14,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <time.h>
+#include <utime.h>
 #include <unistd.h>
 
 // Define constants
@@ -71,7 +72,7 @@ typedef struct header {
 
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 
-void print_header(char *tarfile, int verbose, int strict);
+void list_archive(char *tarfile, int argc, char *argv[], int verbose);
 char *getPath(char *prefix, char *name);
 
 #endif
