@@ -1,5 +1,4 @@
 #include "mytar.h"
-#include <stdio.h>
 
 void format_permissions(char *permissions, const char *mode_str,
                         const hPtr header) {
