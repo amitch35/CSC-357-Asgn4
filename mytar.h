@@ -72,7 +72,6 @@ typedef struct header {
 
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 
-void list_archive(char *tarfile, int argc, char *argv[], int verbose);
 char *getPath(char *prefix, char *name);
 
 #endif

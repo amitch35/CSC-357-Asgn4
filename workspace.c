@@ -112,7 +112,7 @@ void extractFile(int tarFD, hPtr header, int v) {
     int total_bytes_written = 0;
     int bytes_read, bytes_written, outFileFD;
     int mode = strtol(header->mode, NULL, 8);
-    int size = strtol(header->size, NULL, 12);
+    int size = strtol(header->size, NULL, 8);
 
     /* Get full path name */
     path = getPath(header->prefix, header->name);

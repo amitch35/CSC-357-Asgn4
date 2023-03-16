@@ -4,7 +4,7 @@
 // Define functions
 void create_archive(char *tarfile, char **paths, int num_paths, int verbose,
                     int strict);
-void list_contents(char *tarfile, int verbose);
+void list_archive(char *tarfile, int argc, char *argv[], int verbose);
 void extractArchive(char *tarfile,  char **paths, int num_paths, int v);
 
 // Main function
@@ -93,8 +93,7 @@ int main(int argc, char **argv) {
 #ifdef TEST
     printf("CALL TO list_archive\n");
 #endif
-    // list_archive(tarfile, argc, argv, verbose); // TODO: Remove
-
+    list_archive(tarfile, argc, argv, verbose);
   } else if (xflag) {
 #ifdef TEST
     printf("CALL TO extract_archive\n");
