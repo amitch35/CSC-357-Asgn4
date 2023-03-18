@@ -14,8 +14,8 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <time.h>
-#include <utime.h>
 #include <unistd.h>
+#include <utime.h>
 
 // Define constants
 #define BLOCK_SIZE 512
@@ -73,5 +73,6 @@ typedef struct header {
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 
 char *getPath(char *prefix, char *name);
+uint32_t getChecksum(uint8_t *header);
 
 #endif

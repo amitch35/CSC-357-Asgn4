@@ -86,10 +86,44 @@ void print_header(char *path, hPtr header, int tarFD, int v) {
   }
 }
 
+int validate_header(hPtr header) {
+  uint32_t chksum = 0;
+  uint32_t givenChkSum = strtol(header->chksum, NULL, 8);
+  /* Compute checksum */
+  chksum = getChecksum((uint8_t *)header);
+#ifdef TEST
+  printf("Given chksum = %d\nCalculated = %d\n => %d\n", 
+        givenChkSum, chksum, (chksum != givenChkSum));
+#endif
+
+  /* Check for bad headers */
+  if (chksum != givenChkSum ||
+      strncmp(header->magic, LAX_MAGIC, 5) != 0 ||
+      (strcmp(header->version, LAX_VERSION) != 0 &&
+      strncmp(header->version, VERSION, 2) != 0) ||
+      header->name[0] == '\0') {
+#ifdef TEST
+      printf("Given | Expected\n");
+      printf("magic--> %s | %s => %d\n", 
+            header->magic, LAX_MAGIC, strncmp(header->magic, LAX_MAGIC, 5));
+      printf("version--> %s | %s => %d\n", 
+          header->version, LAX_VERSION, 
+          (strcmp(header->version, LAX_VERSION) != 0 &&
+          strncmp(header->version, VERSION, 2)));
+      printf("name--> %s | Not null => %d\n", 
+            header->name, header->name[0] == '\0');
+#endif
+    return -1; /* Header is not valid */
+  }
+
+  return 0; /* Header is valid */
+}
+
+
 char *getPath(char *prefix, char *name)
 {
-    char *fullPath = (char *)calloc(strlen(prefix) + 
-                        strlen(name) + 1, sizeof(char ));
+    char *fullPath = malloc(NAME_MAX + 1 * sizeof(char));
+    memset(fullPath, '\0', MT_CSUMLEN); /* Initialize whole thing to \0 chars */
     /* If prefix is not empty */
     if (prefix[0])
     {
@@ -128,9 +162,18 @@ void openTarListing(char *tarfile, int argc, char *argv[], int v) {
         if (!header->name[0]) {
           break;
         }
-        if (strcmp(header->name, argv[i]) == 0) {
+        /*new*/
+        path = getPath(header->prefix, header->name);
+        /* Check if header is valid */
+        if (validate_header(header)) {
+          perror("Malformed header found.\n");
+          exit(1);
+        }
+
+        if (strcmp(path, argv[i]) == 0) {
           /* Found the file */
-          print_header(header->name, header, tarFD, v);
+          printf("Given: %s\n", path);
+          print_header(path, header, tarFD, v);
           break;
         }
       }
@@ -146,9 +189,14 @@ void openTarListing(char *tarfile, int argc, char *argv[], int v) {
       if (!header->name[0]) {
         break;
       }
+      /*new*/
+      if (validate_header(header)) {
+        fprintf(stderr, "Malformed header found. Bailing.\n");
+        exit(1);
+      }
+
       path = getPath(header->prefix, header->name);
       print_header(path, header, tarFD, v);
-      free(path);
     }
   }
 

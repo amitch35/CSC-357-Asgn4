@@ -5,7 +5,7 @@
 void create_archive(char *tarfile, char **paths, int num_paths, int verbose,
                     int strict);
 void list_archive(char *tarfile, int argc, char *argv[], int verbose);
-void extractArchive(char *tarfile,  char **paths, int num_paths, int v);
+void extractArchive(char *tarfile, char **paths, int num_paths, int v);
 
 // Main function
 int main(int argc, char **argv) {

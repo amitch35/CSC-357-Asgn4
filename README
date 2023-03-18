@@ -1,0 +1,15 @@
+Aimee Mai, (aimai)
+Bill Chan, (bchan36)
+Ashton Mitchell (amitch35)
+
+We were originally all working alone and sort of grouped together very late into the project. It was chaotic at first combining three different versions of mytar that we had written up. But we managed to crack out as much as we could.
+
+
+Tasks/How we divided and why some tests failed the workload:
+We separated the project into 3 parts, creating, listing, and extracting the archives. We all had similar mains/parsing methods, so we merged our ideas together.
+
+Create: Used most of the functions Aimee had written but revised by Ash to fit the rest of the code. Ash also added multiple functions on top of what Aimee had which helped debug and fix up the header. The final create test fails because splitting the prefix and name was not implemented to split on a slash as the documentation wanted. Because of this, path names larger than 100 characters are split between the prefix and name feilds in the header but do not match the tests. 
+
+List: Mostly done by Bill, wrote functions that would list files in the archive. Aimee provided a getPath() function that was used for List and Extract. However, we were unsuccessful in handling some of the deep tree (no prefix, prefix, named prefixes) test cases and named files, no prefix.
+
+Extract: Written by Aimee and Ash. Aimee had written a base for it that handled symbolic links and directories, Ash wrote the extract for files and tied it all together. We didn't implement anything that handled prefix's or names that didn't have a null termination. So the cases that failed were due to issues like that and files not being found within subdirectories

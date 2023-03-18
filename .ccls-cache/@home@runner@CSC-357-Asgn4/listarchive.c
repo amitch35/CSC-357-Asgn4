@@ -1,18 +1,19 @@
 #include "mytar.h"
+#include <stdio.h>
 
-void format_permissions(char *permissions, const char *mode_str,
-                        const hPtr header) {
+void format_permissions(char *permissions, 
+                      const char *mode_str, const hPtr header)  {
   int mode = strtol(mode_str, NULL, 8);
   /* Extract the file type */
   switch (header->typeflag) {
-  case DIRECTORY:
-    permissions[0] = 'd';
-    break;
-  case SYM_LINK:
-    permissions[0] = 'l';
-    break;
-  default:
-    permissions[0] = '-';
+    case DIRECTORY:
+      permissions[0] = 'd';
+      break;
+    case SYM_LINK:
+      permissions[0] = 'l';
+      break;
+    default:
+      permissions[0] = '-';
   }
 
   permissions[1] = (mode & S_IRUSR) ? 'r' : '-';
@@ -41,8 +42,8 @@ void print_header(char *path, hPtr header, int tarFD, int v) {
 
   /* Read file information */
   if (fstat(tarFD, &fileStat) == -1) {
-    perror("Error reading file information");
-    exit(EXIT_FAILURE);
+      perror("Error reading file information");
+      exit(EXIT_FAILURE);
   }
 
   /* Print file information */
@@ -65,55 +66,58 @@ void print_header(char *path, hPtr header, int tarFD, int v) {
 
     /* Skip over the file's data */
     size = strtol(header->size, NULL, 8);
-    offset = lseek(tarFD, (size + (BLOCK_SIZE - 1)) / BLOCK_SIZE * BLOCK_SIZE,
-                   SEEK_CUR);
+    offset = lseek(tarFD, (size + (BLOCK_SIZE - 1)) / 
+                                BLOCK_SIZE * BLOCK_SIZE, SEEK_CUR);
     if (offset == -1) {
-      perror("Error skipping over file data");
-      exit(EXIT_FAILURE);
+        perror("Error skipping over file data");
+        exit(EXIT_FAILURE);
     }
   } else {
     /* Skip over the file's data */
     size = strtol(header->size, NULL, 8);
-    offset = lseek(tarFD, (size + (BLOCK_SIZE - 1)) / BLOCK_SIZE * BLOCK_SIZE,
-                   SEEK_CUR);
+    offset = lseek(tarFD, (size + (BLOCK_SIZE - 1)) / 
+                            BLOCK_SIZE * BLOCK_SIZE, SEEK_CUR);
     if (offset == -1) {
-      perror("Error skipping over file data");
-      exit(EXIT_FAILURE);
+        perror("Error skipping over file data");
+        exit(EXIT_FAILURE);
     }
 
     printf("%s\n", path);
   }
 }
 
-char *getPath(char *prefix, char *name) {
-  char *fullPath =
-      (char *)calloc(strlen(prefix) + strlen(name) + 1, sizeof(char));
-  /* If prefix is not empty */
-  if (prefix[0]) {
-    strcpy(fullPath, prefix);
-    /* Append a '/' */
-    strcat(fullPath, "/");
-  }
-  strcat(fullPath, name);
-  return fullPath;
+char *getPath(char *prefix, char *name)
+{
+    char *fullPath = (char *)calloc(strlen(prefix) + 
+                        strlen(name) + 1, sizeof(char ));
+    /* If prefix is not empty */
+    if (prefix[0])
+    {
+      strcpy(fullPath, prefix);
+      /* Append a '/' */
+      strcat(fullPath, "/");
+    }
+    strcat(fullPath, name);
+    return fullPath;
 }
+
 
 void openTarListing(char *tarfile, int argc, char *argv[], int v) {
   int tarFD, i, num;
   char *path;
-  hPtr header = (hPtr)malloc(sizeof(hEntry));
+  hPtr header = (hPtr) malloc(sizeof(hEntry));
   if (header == NULL) {
     perror("Unable to allocate memory for header\n");
     exit(EXIT_FAILURE);
   }
-
+  
   /* Open tarfile */
   tarFD = open(tarfile, O_RDONLY);
   if (tarFD < 0) {
     perror("unable to open tarfile\n");
     exit(EXIT_FAILURE);
   }
-
+  
   /* Check for any names given on the command line */
   if (argc > 3) {
     /* List the files in the archive */
@@ -156,11 +160,12 @@ void openTarListing(char *tarfile, int argc, char *argv[], int v) {
   close(tarFD);
 }
 
+
 void list_archive(char *tarfile, int argc, char *argv[], int verbose) {
-  if (argc <= 2) {
+  if(argc <= 2){
     perror("Missing arguments\n");
     exit(EXIT_FAILURE);
-  } else {
+  }else{
     openTarListing(tarfile, argc, argv, verbose);
   }
 }

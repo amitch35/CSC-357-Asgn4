@@ -41,13 +41,13 @@ void splitName(char *filepath, hPtr header, struct stat st) {
   // Add trailing '/' if file is a directory
   if (S_ISDIR(st.st_mode)) {
 #ifdef TEST
-  fprintf(stdout,"%s is a dir so add slash to end of pathname\n", filepath);
+    fprintf(stdout, "%s is a dir so add slash to end of pathname\n", filepath);
 #endif
     filename[strlen(filename)] = '/';
-  } 
+  }
 #ifdef TEST
   else { // TODO remove else and return ifdef above
-  fprintf(stdout,"%s is not dir\n", filepath);
+    fprintf(stdout, "%s is not dir\n", filepath);
   }
   printf("Adding %s to name/prefix feilds of header\n", filename);
 #endif
@@ -79,7 +79,7 @@ void splitName(char *filepath, hPtr header, struct stat st) {
 
 void setType(char *filename, struct stat st, hPtr header) {
 #ifdef TEST
-    printf("Getting Type, Size, and Link for: %s\n", filename);
+  printf("Getting Type, Size, and Link for: %s\n", filename);
 #endif
   if (S_ISDIR(st.st_mode)) {
     header->typeflag = DIRECTORY;
@@ -108,7 +108,7 @@ void setType(char *filename, struct stat st, hPtr header) {
 
 void setIDName(struct stat st, hPtr header) {
 #ifdef TEST
-    printf("Setting UID and GID\n");
+  printf("Setting UID and GID\n");
 #endif
   struct passwd *pentry;
   struct group *pgroup;
@@ -245,7 +245,7 @@ void add_file(int tar_fd, char *filepath, int verbose, int strict) {
   if (verbose > 0) {
     printf("%s\n", filepath);
   }
-    
+
   // Close file
   close(fd);
 }
